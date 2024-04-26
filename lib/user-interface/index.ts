@@ -1,9 +1,11 @@
 import * as cognitoIdentityPool from "@aws-cdk/aws-cognito-identitypool-alpha";
 import * as cdk from "aws-cdk-lib";
 import * as cf from "aws-cdk-lib/aws-cloudfront";
+import * as targets from 'aws-cdk-lib/aws-route53-targets';
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as s3deploy from "aws-cdk-lib/aws-s3-deployment";
+import * as route53 from 'aws-cdk-lib/aws-route53';
 import { Construct } from "constructs";
 import {
   ExecSyncOptionsWithBufferEncoding,
@@ -65,6 +67,16 @@ export class UserInterface extends Construct {
     } else {
       const publicWebsite = new PublicWebsite(this, "PublicWebsite", {...props, websiteBucket: websiteBucket });
       distribution = publicWebsite.distribution
+      const domainName = distribution.distributionDomainName;
+      const hostedZone = new route53.HostedZone(this, 'GenAiChatbotHostedZone', {
+        zoneName: 'genaichatbot.com',
+        comment: 'Hosted zone for GenAI chatbot' 
+      });      
+      new route53.ARecord(this, 'AlphaRecord', {
+        zone: hostedZone,
+        recordName: 'alpha-genaichatbot.aws.dev', 
+        target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(distribution))
+      });
     }
 
       
